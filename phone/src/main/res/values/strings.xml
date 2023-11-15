@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Notifications Complication Phone Companion</string>
+    <string name="package_list_filter_only_enabled">Only show enabled</string>
+    <string name="package_list_filter_all">Show all</string>
+    <string name="package_list_select_all">Select all apps</string>
+    <string name="package_list_deselect_all">Deselect all apps</string>
 </resources>

@@ -1,10 +1,11 @@
 # Phone
 
 ## Package selection
-- [ ] List out packages
-- [ ] Select and remember packages
-- [ ] Allow select all and none
-- [ ] Allow filter to only selected
+- [x] List out packages
+- [x] Select and remember packages
+- [x] Allow select all and none
+- [x] Allow filter to only selected
+- [ ] Search for app name (also search package name?)
 
 ## Notification handling
 - [ ] Register notification listener, ensure service started(?)
