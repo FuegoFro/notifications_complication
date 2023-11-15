@@ -2,7 +2,6 @@ package com.fuegofro.notifications_complication.phone
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
@@ -39,7 +38,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fuegofro.notifications_complication.phone.ui.theme.NotificationsComplicationTheme
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 val Context.enabledPackagesDataStore by preferencesDataStore("enabledPackages")
@@ -52,7 +50,7 @@ class MainActivity : ComponentActivity() {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     PackageList(packageManager, enabledPackagesDataStore)
                 }
@@ -67,30 +65,33 @@ data class PackageInfo(val name: String, val icon: Drawable, val label: String)
 fun PackageList(packageManager: PackageManager, enabledPackagesDataStore: DataStore<Preferences>) {
     val coroutineScope = rememberCoroutineScope()
 
-    val (installedPackages, setInstalledPackages) = remember {
-        mutableStateOf<List<PackageInfo>?>(
-            null
-        )
-    }
+    val (installedPackages, setInstalledPackages) =
+        remember {
+            mutableStateOf<List<PackageInfo>?>(
+                null,
+            )
+        }
     LaunchedEffect(Unit) {
         @SuppressLint("QueryPermissionsNeeded")
-        val packages = if (Build.VERSION.SDK_INT >= 33) {
-            packageManager.getInstalledApplications(
-                PackageManager.ApplicationInfoFlags.of(
-                    PackageManager.GET_META_DATA.toLong()
+        val packages =
+            if (Build.VERSION.SDK_INT >= 33) {
+                packageManager.getInstalledApplications(
+                    PackageManager.ApplicationInfoFlags.of(
+                        PackageManager.GET_META_DATA.toLong(),
+                    ),
                 )
-            )
-        } else {
-            packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-        }
+            } else {
+                packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+            }
         setInstalledPackages(
-            packages.asSequence()
+            packages
+                .asSequence()
                 .filter { it.enabled && it.flags.and(ApplicationInfo.FLAG_SYSTEM) == 0 }
                 .map {
                     PackageInfo(
                         name = it.packageName,
                         icon = it.loadIcon(packageManager),
-                        label = it.loadLabel(packageManager).toString(),
+                        label = it.loadLabel(packageManager).toString()
                     )
                 }
                 .sortedBy { it.label.lowercase() }
@@ -100,20 +101,13 @@ fun PackageList(packageManager: PackageManager, enabledPackagesDataStore: DataSt
 
     @Suppress("SimpleRedundantLet")
     val enabledPackages =
-        enabledPackagesDataStore.data
-            .collectAsStateWithLifecycle(initialValue = null)
-            .value
-            ?.let { preferences -> preferences.asMap().keys.map { it.name }.toSet() }
-    // val (enabledPackages, setEnabledPackages) = remember { mutableStateOf<Set<String>?>(null) }
+        enabledPackagesDataStore.data.collectAsStateWithLifecycle(initialValue = null).value?.let {
+            preferences ->
+            preferences.asMap().keys.map { it.name }.toSet()
+        }
 
     val setPackageEnabled: suspend (String, Boolean) -> Unit =
         { packageId: String, enabled: Boolean ->
-            // val existingEnabledPackages = enabledPackages ?: setOf()
-            // val newEnabledPackages = if (enabled) {
-            //     existingEnabledPackages.plus(packageId)
-            // } else {
-            //     existingEnabledPackages.minus(packageId)
-            // }
             val key = booleanPreferencesKey(packageId)
             enabledPackagesDataStore.edit {
                 if (enabled) {
@@ -125,15 +119,11 @@ fun PackageList(packageManager: PackageManager, enabledPackagesDataStore: DataSt
         }
 
     if (installedPackages == null || enabledPackages == null) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(text = "Loading...")
-        }
+        Box(contentAlignment = Alignment.Center) { Text(text = "Loading...") }
     } else {
         // TODO - This is *way* more performant/smooth than the LazyColumn 🤔
         Column(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.padding(top = 8.dp).verticalScroll(rememberScrollState()),
         ) {
             installedPackages.forEach { packageInfo ->
                 PackageRow(
@@ -141,10 +131,9 @@ fun PackageList(packageManager: PackageManager, enabledPackagesDataStore: DataSt
                     packageInfo = packageInfo,
                     enabled = enabledPackages.contains(packageInfo.name),
                     setEnabled = { enabled: Boolean ->
-                        coroutineScope.launch {
-                            setPackageEnabled(packageInfo.name, enabled)
-                        }
-                    })
+                        coroutineScope.launch { setPackageEnabled(packageInfo.name, enabled) }
+                    },
+                )
             }
         }
 
@@ -168,18 +157,13 @@ fun PackageRow(
 ) {
     Row(modifier) {
         Image(
-            modifier = Modifier
-                .size(48.dp)
-                .align(Alignment.CenterVertically),
+            modifier = Modifier.size(48.dp).align(Alignment.CenterVertically),
             painter = rememberDrawablePainter(packageInfo.icon),
-            contentDescription = null
+            contentDescription = null,
         )
         Text(
-            modifier = Modifier
-                .weight(1f)
-                .align(Alignment.CenterVertically)
-                .padding(start = 8.dp),
-            text = packageInfo.label
+            modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(start = 8.dp),
+            text = packageInfo.label,
         )
         Switch(checked = enabled, onCheckedChange = setEnabled)
     }
