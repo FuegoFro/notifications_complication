@@ -1,6 +1,10 @@
 package com.fuegofro.notifications_complication.phone
 
+import android.content.ComponentName
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,8 +22,22 @@ private data object NavScreens {
 }
 
 class MainActivity : ComponentActivity() {
+
+    private val serviceConnection =
+        object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                Log.e("ServiceConnection", "onServiceConnected")
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                Log.e("ServiceConnection", "onServiceDisconnected")
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        bindService(Intent(this, NotificationListener::class.java), serviceConnection, 0)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -41,5 +59,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unbindService(serviceConnection)
     }
 }

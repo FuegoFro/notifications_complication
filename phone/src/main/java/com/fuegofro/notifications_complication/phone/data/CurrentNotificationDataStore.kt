@@ -113,16 +113,19 @@ data class NotificationInfo(
             this?.key == statusBarNotification?.key &&
                 this?.postTime == statusBarNotification?.postTime
 
-        @SuppressLint("RestrictedApi") // for extractStyleFromNotification
         fun StatusBarNotification.toNotificationInfo(context: Context): NotificationInfo {
+            @SuppressLint("RestrictedApi")
             val titleAndText =
                 when (
                     val style = NotificationCompat.Style.extractStyleFromNotification(notification)
                 ) {
                     is NotificationCompat.MessagingStyle -> {
-                        style.messages.last()?.let { message ->
+                        val message = style.messages.last()
+                        if (message != null && style.conversationTitle != null) {
                             val prefix = message.person?.name?.let { "$it: " } ?: ""
                             Pair(style.conversationTitle.toString(), "$prefix${message.text ?: ""}")
+                        } else {
+                            null
                         }
                     }
                     else -> null
@@ -156,13 +159,13 @@ object NotificationInfoSerializer : Serializer<NotificationInfo?> {
         if (bytes.isEmpty()) {
             return null
         }
-        try {
-            return ProtoBuf.decodeFromByteArray(
+        return try {
+            ProtoBuf.decodeFromByteArray(
                 NotificationInfo.serializer(),
                 bytes,
             )
         } catch (serialization: SerializationException) {
-            return null
+            null
         }
     }
 

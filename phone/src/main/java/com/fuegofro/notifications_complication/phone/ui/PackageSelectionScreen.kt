@@ -3,7 +3,7 @@
 package com.fuegofro.notifications_complication.phone.ui
 
 import android.annotation.SuppressLint
-import android.content.pm.ApplicationInfo
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.os.Build
@@ -65,6 +65,9 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
             )
         }
     LaunchedEffect(Unit) {
+        val startupIntent = Intent(Intent.ACTION_MAIN)
+        startupIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+
         @SuppressLint("QueryPermissionsNeeded")
         val packages =
             if (Build.VERSION.SDK_INT >= 33) {
@@ -76,19 +79,26 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
             } else {
                 packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
             }
+
+        val packagesWithLauncherActivities =
+            packageManager
+                .queryIntentActivities(startupIntent, 0)
+                .asSequence()
+                .map { it.activityInfo.packageName }
+                .toSet()
         setInstalledPackages(
             packages
                 .asSequence()
-                .filter { it.enabled && it.flags.and(ApplicationInfo.FLAG_SYSTEM) == 0 }
+                .filter { it.enabled && packagesWithLauncherActivities.contains(it.packageName) }
                 .map {
                     PackageInfo(
                         name = it.packageName,
                         icon = it.loadIcon(packageManager),
-                        label = it.loadLabel(packageManager).toString()
+                        label = it.loadLabel(packageManager).toString(),
                     )
                 }
                 .sortedBy { it.label.lowercase() }
-                .toList()
+                .toList(),
         )
     }
 
@@ -113,7 +123,7 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
                     IconButton(onClick = onNavigateUp) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.button_up)
+                            contentDescription = stringResource(R.string.button_up),
                         )
                     }
                 },
@@ -121,14 +131,14 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
                     if (filterOnlyEnabled) {
                         AppBarAction(
                             icon = Icons.Filled.FilterListOff,
-                            labelRes = R.string.package_list_filter_all
+                            labelRes = R.string.package_list_filter_all,
                         ) {
                             filterOnlyEnabled = false
                         }
                     } else {
                         AppBarAction(
                             icon = Icons.Filled.FilterList,
-                            labelRes = R.string.package_list_filter_only_enabled
+                            labelRes = R.string.package_list_filter_only_enabled,
                         ) {
                             filterOnlyEnabled = true
                         }
@@ -137,7 +147,7 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
                     if (enabledPackages?.isEmpty() == true) {
                         AppBarAction(
                             icon = Icons.Filled.ToggleOn,
-                            labelRes = R.string.package_list_select_all
+                            labelRes = R.string.package_list_select_all,
                         ) {
                             coroutineScope.launch {
                                 installedPackages
@@ -149,21 +159,21 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
                     } else {
                         AppBarAction(
                             icon = Icons.Filled.ToggleOff,
-                            labelRes = R.string.package_list_deselect_all
+                            labelRes = R.string.package_list_deselect_all,
                         ) {
                             coroutineScope.launch { enabledPackagesDataStore.disableAll() }
                         }
                     }
                 },
             )
-        }
+        },
     ) { paddingValues ->
         PackageList(
             paddingValues,
             installedPackages,
             enabledPackages,
             enabledPackagesDataStore::setPackageEnabled,
-            filterOnlyEnabled
+            filterOnlyEnabled,
         )
     }
 }
@@ -210,7 +220,7 @@ private fun PackageList(
         // }
 
         LazyColumn(
-            /*modifier = Modifier.padding(vertical = 8.dp),*/ contentPadding = paddingValues
+            /*modifier = Modifier.padding(vertical = 8.dp),*/ contentPadding = paddingValues,
         ) {
             item { Spacer(modifier = Modifier.size(4.dp)) }
 
