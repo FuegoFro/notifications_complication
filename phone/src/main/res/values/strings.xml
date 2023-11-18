@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Notifications Complication Phone Companion</string>
+    <string name="notification_listener_service_name">Notifications Listener Service</string>
+    <string name="button_up">Up</string>
     <string name="package_list_filter_only_enabled">Only show enabled</string>
     <string name="package_list_filter_all">Show all</string>
     <string name="package_list_select_all">Select all apps</string>

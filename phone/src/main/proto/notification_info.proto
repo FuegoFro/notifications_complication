@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option java_package = "com.fuegofro.notifications_complication.phone.data";
+option java_multiple_files = true;
+
+message NotificationInfo {
+  string key = 1;
+  int64 postTime = 2;
+  string title = 3;
+  string body = 4;
+  bytes smallIcon = 5;
+  bytes largeIcon = 6;
+}

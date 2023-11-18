@@ -19,11 +19,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FilterListOff
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -40,22 +43,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fuegofro.notifications_complication.phone.R
-import com.fuegofro.notifications_complication.phone.enabledPackagesDataStore
+import com.fuegofro.notifications_complication.phone.data.EnabledPackagesDataStore.Companion.enabledPackagesDataStore
 import com.fuegofro.notifications_complication.phone.ui.components.AppBarAction
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
 
 @Composable
-fun PackageSelectionScreen() {
+fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
 
     val packageManager = LocalContext.current.packageManager
-    val enabledPackagesDataStore = LocalContext.current.enabledPackagesDataStore
 
     val (installedPackages, setInstalledPackages) =
         remember {
@@ -91,24 +92,11 @@ fun PackageSelectionScreen() {
         )
     }
 
-    @Suppress("SimpleRedundantLet")
+    val enabledPackagesDataStore = LocalContext.current.enabledPackagesDataStore
     val enabledPackages =
-        enabledPackagesDataStore.data.collectAsStateWithLifecycle(initialValue = null).value?.let {
-            preferences ->
-            preferences.asMap().keys.map { it.name }.toSet()
-        }
-
-    val setPackageEnabled: suspend (String, Boolean) -> Unit =
-        { packageId: String, enabled: Boolean ->
-            val key = booleanPreferencesKey(packageId)
-            enabledPackagesDataStore.edit {
-                if (enabled) {
-                    it[key] = true
-                } else {
-                    it.remove(key)
-                }
-            }
-        }
+        enabledPackagesDataStore.enabledPackages
+            .collectAsStateWithLifecycle(initialValue = null)
+            .value
 
     var filterOnlyEnabled by remember { mutableStateOf(false) }
 
@@ -121,6 +109,14 @@ fun PackageSelectionScreen() {
                         titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
                 title = { Text("Pick apps") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateUp) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.button_up)
+                        )
+                    }
+                },
                 actions = {
                     if (filterOnlyEnabled) {
                         AppBarAction(
@@ -144,11 +140,10 @@ fun PackageSelectionScreen() {
                             labelRes = R.string.package_list_select_all
                         ) {
                             coroutineScope.launch {
-                                enabledPackagesDataStore.edit { dataStore ->
-                                    installedPackages?.forEach { packageInfo ->
-                                        dataStore[booleanPreferencesKey(packageInfo.name)] = true
-                                    }
-                                }
+                                installedPackages
+                                    ?.asSequence()
+                                    ?.map { it.name }
+                                    ?.let { enabledPackagesDataStore.enableAll(it) }
                             }
                         }
                     } else {
@@ -156,9 +151,7 @@ fun PackageSelectionScreen() {
                             icon = Icons.Filled.ToggleOff,
                             labelRes = R.string.package_list_deselect_all
                         ) {
-                            coroutineScope.launch {
-                                enabledPackagesDataStore.edit { dataStore -> dataStore.clear() }
-                            }
+                            coroutineScope.launch { enabledPackagesDataStore.disableAll() }
                         }
                     }
                 },
@@ -169,7 +162,7 @@ fun PackageSelectionScreen() {
             paddingValues,
             installedPackages,
             enabledPackages,
-            setPackageEnabled,
+            enabledPackagesDataStore::setPackageEnabled,
             filterOnlyEnabled
         )
     }

@@ -5,13 +5,16 @@
 - [x] Select and remember packages
 - [x] Allow select all and none
 - [x] Allow filter to only selected
+- [ ] Refresh current notification when changing packages
+- [ ] Show relevant system apps (eg Messages)
 - [ ] Search for app name (also search package name?)
 
 ## Notification handling
-- [ ] Register notification listener, ensure service started(?)
-- [ ] Filter out notifications we don't want (silent, ongoing, local(?), deselected)
+- [x] Register notification listener
+- [x] Filter out notifications we don't want (silent, ongoing, local(?), deselected)
 - [ ] Extract info from notifications
 - [ ] Send current to watch when notifications change (add, remove, reorder)
+- [ ] Reset on shutdown and boot
 
 ## Other
 - [ ] Option to show latest vs top?
