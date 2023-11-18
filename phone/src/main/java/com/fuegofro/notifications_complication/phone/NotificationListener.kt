@@ -28,7 +28,6 @@ class NotificationListener : NotificationListenerLifecycleService() {
 
     private lateinit var enabledPackagesDataStore: EnabledPackagesDataStore
     private lateinit var currentNotificationDataStore: CurrentNotificationDataStore
-    // private var currentNotification: NotificationInfo? = null
 
     private fun doUpdate(
         name: String,
