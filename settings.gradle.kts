@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 rootProject.name = "Notifications Complication"
 include(":wear")
 include(":phone")
+include(":common")

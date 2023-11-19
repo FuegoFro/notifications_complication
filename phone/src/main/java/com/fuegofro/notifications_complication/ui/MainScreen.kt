@@ -24,12 +24,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fuegofro.notifications_complication.common.NotificationInfo
 import com.fuegofro.notifications_complication.data.CurrentNotificationDataStore.Companion.currentNotificationDataStore
-import com.fuegofro.notifications_complication.data.NotificationInfo
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.tasks.await
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.protobuf.ProtoBuf
 
 @Composable
 fun MainScreen(onNavigateToPackagesSelection: () -> Unit) {
@@ -38,14 +36,7 @@ fun MainScreen(onNavigateToPackagesSelection: () -> Unit) {
         remember { mutableStateOf<NotificationInfo?>(null) }
     LaunchedEffect(Unit) {
         val dataItems = dataClient.dataItems.await()
-        val data = dataItems.firstOrNull()?.data ?: ByteArray(0)
-        val notificationInfo =
-            if (data.isEmpty()) {
-                null
-            } else {
-                @OptIn(ExperimentalSerializationApi::class)
-                ProtoBuf.decodeFromByteArray(NotificationInfo.serializer(), data)
-            }
+        val notificationInfo = NotificationInfo.fromBytes(dataItems.firstOrNull()?.data)
         dataItems.release()
         setDataLayerNotification(notificationInfo)
     }

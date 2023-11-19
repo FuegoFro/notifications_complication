@@ -3,17 +3,16 @@ package com.fuegofro.notifications_complication
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
+import com.fuegofro.notifications_complication.common.NotificationInfo
+import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.matchesStatusBarNotification
+import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.toBytes
+import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.toNotificationInfo
 import com.fuegofro.notifications_complication.data.CurrentNotificationDataStore
 import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore
-import com.fuegofro.notifications_complication.data.NotificationInfo
-import com.fuegofro.notifications_complication.data.NotificationInfo.Companion.matchesStatusBarNotification
-import com.fuegofro.notifications_complication.data.NotificationInfo.Companion.toNotificationInfo
 import com.google.android.gms.wearable.PutDataRequest
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.protobuf.ProtoBuf
 
 class NotificationListener : NotificationListenerLifecycleService() {
     // Store off active key and notification info
@@ -64,13 +63,10 @@ class NotificationListener : NotificationListenerLifecycleService() {
             // TODO - Do we even need to store this here???
             currentNotificationDataStore.setNotification(notificationInfo)
             // TODO - Notify change
-            val dataBytes =
-                notificationInfo?.let {
-                    @OptIn(ExperimentalSerializationApi::class)
-                    ProtoBuf.encodeToByteArray(NotificationInfo.serializer(), it)
-                } ?: ByteArray(0)
             dataClient.putDataItem(
-                PutDataRequest.create("/current_notification").setData(dataBytes).setUrgent()
+                PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH)
+                    .setData(notificationInfo.toBytes())
+                    .setUrgent()
             )
         }
 
