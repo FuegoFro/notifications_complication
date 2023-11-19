@@ -1,4 +1,4 @@
-package com.fuegofro.notifications_complication.phone
+package com.fuegofro.notifications_complication
 
 import android.content.ComponentName
 import android.content.Intent

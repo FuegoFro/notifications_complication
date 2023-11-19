@@ -38,7 +38,7 @@ fun MainScreen(onNavigateToPackagesSelection: () -> Unit) {
         remember { mutableStateOf<NotificationInfo?>(null) }
     LaunchedEffect(Unit) {
         val dataItems = dataClient.dataItems.await()
-        val data = dataItems.first()?.data ?: ByteArray(0)
+        val data = dataItems.firstOrNull()?.data ?: ByteArray(0)
         val notificationInfo =
             if (data.isEmpty()) {
                 null
