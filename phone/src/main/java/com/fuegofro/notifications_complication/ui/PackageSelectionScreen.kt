@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.fuegofro.notifications_complication.phone.ui
+package com.fuegofro.notifications_complication.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -46,9 +46,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.fuegofro.notifications_complication.phone.R
-import com.fuegofro.notifications_complication.phone.data.EnabledPackagesDataStore.Companion.enabledPackagesDataStore
-import com.fuegofro.notifications_complication.phone.ui.components.AppBarAction
+import com.fuegofro.notifications_complication.R
+import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore.Companion.enabledPackagesDataStore
+import com.fuegofro.notifications_complication.ui.components.AppBarAction
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.launch
 

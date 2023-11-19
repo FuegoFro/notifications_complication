@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.fuegofro.notifications_complication.phone.ui.components
+package com.fuegofro.notifications_complication.ui.components
 
 import androidx.annotation.StringRes
 import androidx.compose.material3.ExperimentalMaterial3Api

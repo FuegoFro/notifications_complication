@@ -3,31 +3,29 @@ package com.fuegofro.notifications_complication.phone
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
-import com.fuegofro.notifications_complication.phone.data.CurrentNotificationDataStore
-import com.fuegofro.notifications_complication.phone.data.CurrentNotificationDataStore.Companion.currentNotificationDataStore
-import com.fuegofro.notifications_complication.phone.data.EnabledPackagesDataStore
-import com.fuegofro.notifications_complication.phone.data.NotificationInfo
-import com.fuegofro.notifications_complication.phone.data.NotificationInfo.Companion.matchesStatusBarNotification
-import com.fuegofro.notifications_complication.phone.data.NotificationInfo.Companion.toNotificationInfo
+import com.fuegofro.notifications_complication.data.CurrentNotificationDataStore
+import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore
+import com.fuegofro.notifications_complication.data.NotificationInfo
+import com.fuegofro.notifications_complication.data.NotificationInfo.Companion.matchesStatusBarNotification
+import com.fuegofro.notifications_complication.data.NotificationInfo.Companion.toNotificationInfo
+import com.google.android.gms.wearable.PutDataRequest
+import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.protobuf.ProtoBuf
 
 class NotificationListener : NotificationListenerLifecycleService() {
     // Store off active key and notification info
     // Ability to on-demand refresh
 
+    private val enabledPackagesDataStore by lazy { EnabledPackagesDataStore(this) }
+    private val currentNotificationDataStore by lazy { CurrentNotificationDataStore(this) }
+    private val dataClient by lazy { Wearable.getDataClient(this) }
+
     companion object {
         const val TAG = "NLServ"
     }
-
-    override fun onCreate() {
-        super.onCreate()
-        enabledPackagesDataStore = EnabledPackagesDataStore(this)
-        currentNotificationDataStore = CurrentNotificationDataStore(this)
-    }
-
-    private lateinit var enabledPackagesDataStore: EnabledPackagesDataStore
-    private lateinit var currentNotificationDataStore: CurrentNotificationDataStore
 
     private fun doUpdate(
         name: String,
@@ -62,8 +60,18 @@ class NotificationListener : NotificationListenerLifecycleService() {
         val currentNotification = currentNotificationDataStore.currentNotification().first()
         if (!currentNotification.matchesStatusBarNotification(firstStatusBarNotification)) {
             Log.e(TAG, "Updating!!!")
-            currentNotificationDataStore.setNotification(firstStatusBarNotification?.toNotificationInfo(this))
+            val notificationInfo = firstStatusBarNotification?.toNotificationInfo(this)
+            // TODO - Do we even need to store this here???
+            currentNotificationDataStore.setNotification(notificationInfo)
             // TODO - Notify change
+            val dataBytes =
+                notificationInfo?.let {
+                    @OptIn(ExperimentalSerializationApi::class)
+                    ProtoBuf.encodeToByteArray(NotificationInfo.serializer(), it)
+                } ?: ByteArray(0)
+            dataClient.putDataItem(
+                PutDataRequest.create("/current_notification").setData(dataBytes).setUrgent()
+            )
         }
 
         Log.e(TAG, "$name, current=${currentNotification}")

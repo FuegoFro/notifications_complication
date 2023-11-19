@@ -1,4 +1,4 @@
-package com.fuegofro.notifications_complication.phone.ui.theme
+package com.fuegofro.notifications_complication.ui.theme
 
 import android.app.Activity
 import android.os.Build

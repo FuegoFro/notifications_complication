@@ -12,9 +12,9 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.fuegofro.notifications_complication.phone.ui.MainScreen
-import com.fuegofro.notifications_complication.phone.ui.PackageSelectionScreen
-import com.fuegofro.notifications_complication.phone.ui.theme.NotificationsComplicationTheme
+import com.fuegofro.notifications_complication.ui.MainScreen
+import com.fuegofro.notifications_complication.ui.PackageSelectionScreen
+import com.fuegofro.notifications_complication.ui.theme.NotificationsComplicationTheme
 
 private data object NavScreens {
     const val MAIN = "main"

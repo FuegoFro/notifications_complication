@@ -1,4 +1,4 @@
-package com.fuegofro.notifications_complication.phone.data
+package com.fuegofro.notifications_complication.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences

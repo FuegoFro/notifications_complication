@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option java_package = "com.fuegofro.notifications_complication.phone.data";
+option java_package = "com.fuegofro.notifications_complication.data";
 option java_multiple_files = true;
 
 message NotificationInfo {
