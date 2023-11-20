@@ -102,12 +102,13 @@ data class NotificationInfo(
                 this?.postTime == statusBarNotification?.postTime
 
         fun StatusBarNotification.toNotificationInfo(context: Context): NotificationInfo {
+            @SuppressLint("RestrictedApi")
+            val style = NotificationCompat.Style.extractStyleFromNotification(notification)
             var largeIcon = iconToBitmapByteArray(context, notification.getLargeIcon())
 
             val titleAndText =
                 when (
-                    @SuppressLint("RestrictedApi")
-                    val style = NotificationCompat.Style.extractStyleFromNotification(notification)
+                    style
                 ) {
                     is NotificationCompat.MessagingStyle -> {
                         if (largeIcon.isEmpty()) {
@@ -127,14 +128,14 @@ data class NotificationInfo(
             val (title, text) =
                 titleAndText
                     ?: Pair(
-                        notification.extras.getString(Notification.EXTRA_TITLE),
-                        notification.extras.getString(Notification.EXTRA_TEXT)
+                        notification.extras.getCharSequence(Notification.EXTRA_TITLE),
+                        notification.extras.getCharSequence(Notification.EXTRA_TEXT)
                     )
             return NotificationInfo(
                 key,
                 postTime,
-                title ?: "",
-                text ?: "",
+                (title ?: "").toString(),
+                (text ?: "").toString(),
                 iconToBitmapByteArray(context, notification.smallIcon),
                 largeIcon,
                 notification.color,

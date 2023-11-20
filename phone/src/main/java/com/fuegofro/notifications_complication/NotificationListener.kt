@@ -1,5 +1,6 @@
 package com.fuegofro.notifications_complication
 
+import android.app.Notification
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
@@ -51,7 +52,11 @@ class NotificationListener : NotificationListenerLifecycleService() {
         val firstStatusBarNotification =
             getActiveNotifications(rankingMap.orderedKeys).firstOrNull { statusBarNotification ->
                 // TODO - Other filters based on notification?
-                enabledPackages.contains(statusBarNotification.packageName)
+                enabledPackages.contains(statusBarNotification.packageName) &&
+                    // Rather than getting the "summary" inbox notification, get an individual one
+                    !statusBarNotification.notification.extras
+                        .getString(Notification.EXTRA_TEMPLATE)
+                        .equals(Notification.InboxStyle::class.java.name)
             }
 
         // If this is different from our current, update and notify. Handles nulling out or updating
@@ -66,9 +71,7 @@ class NotificationListener : NotificationListenerLifecycleService() {
             val bytes = notificationInfo.toBytes()
             Log.e(TAG, "encoded notification size=${bytes.size}")
             dataClient.putDataItem(
-                PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH)
-                    .setData(bytes)
-                    .setUrgent()
+                PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH).setData(bytes).setUrgent()
             )
         }
 
