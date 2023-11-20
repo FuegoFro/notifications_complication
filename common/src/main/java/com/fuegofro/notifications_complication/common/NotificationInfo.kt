@@ -29,8 +29,8 @@ data class NotificationInfo(
     val title: String,
     val body: String,
     // Just gotta be very careful not to modify these, I guess 🙃
-    private val smallIcon: ByteArray?,
-    private val largeIcon: ByteArray?,
+    private val smallIcon: ByteArray,
+    private val largeIcon: ByteArray,
     val color: Int,
 ) {
     fun smallIconBitmap(): Bitmap? =
@@ -52,8 +52,8 @@ data class NotificationInfo(
                 ProtoBuf.decodeFromByteArray(serializer(), data)
             }
 
-        private fun iconToBitmapByteArray(context: Context, icon: Icon): ByteArray? {
-            val drawable = icon.loadDrawable(context) ?: return null
+        private fun iconToBitmapByteArray(context: Context, icon: Icon?): ByteArray {
+            val drawable = icon?.loadDrawable(context) ?: return ByteArray(0)
 
             // Adapted from https://stackoverflow.com/a/10600736/3000133
             Log.e("CNDS", "icon=${icon.javaClass.name} drawable=${drawable.javaClass.name}")
@@ -102,12 +102,18 @@ data class NotificationInfo(
                 this?.postTime == statusBarNotification?.postTime
 
         fun StatusBarNotification.toNotificationInfo(context: Context): NotificationInfo {
-            @SuppressLint("RestrictedApi")
+            var largeIcon = iconToBitmapByteArray(context, notification.getLargeIcon())
+
             val titleAndText =
                 when (
+                    @SuppressLint("RestrictedApi")
                     val style = NotificationCompat.Style.extractStyleFromNotification(notification)
                 ) {
                     is NotificationCompat.MessagingStyle -> {
+                        if (largeIcon.isEmpty()) {
+                            largeIcon = iconToBitmapByteArray(context, style.user.icon?.toIcon(context))
+                        }
+
                         val message = style.messages.last()
                         if (message != null && style.conversationTitle != null) {
                             val prefix = message.person?.name?.let { "$it: " } ?: ""
@@ -130,7 +136,7 @@ data class NotificationInfo(
                 title ?: "",
                 text ?: "",
                 iconToBitmapByteArray(context, notification.smallIcon),
-                iconToBitmapByteArray(context, notification.getLargeIcon()),
+                largeIcon,
                 notification.color,
             )
         }
