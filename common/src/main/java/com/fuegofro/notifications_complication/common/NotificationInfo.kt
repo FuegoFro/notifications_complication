@@ -26,8 +26,8 @@ import kotlinx.serialization.protobuf.ProtoBuf
 data class NotificationInfo(
     val key: String,
     val postTime: Long,
-    val title: String?,
-    val body: String?,
+    val title: String,
+    val body: String,
     // Just gotta be very careful not to modify these, I guess 🙃
     private val smallIcon: ByteArray?,
     private val largeIcon: ByteArray?,
@@ -40,6 +40,7 @@ data class NotificationInfo(
         largeIcon?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
 
     companion object {
+        // Must match manifest value in wear app
         const val DATA_LAYER_PATH = "/current_notification"
         fun NotificationInfo?.toBytes(): ByteArray =
             this?.let { ProtoBuf.encodeToByteArray(serializer(), it) } ?: ByteArray(0)
@@ -126,8 +127,8 @@ data class NotificationInfo(
             return NotificationInfo(
                 key,
                 postTime,
-                title,
-                text,
+                title ?: "",
+                text ?: "",
                 iconToBitmapByteArray(context, notification.smallIcon),
                 iconToBitmapByteArray(context, notification.getLargeIcon()),
                 notification.color,

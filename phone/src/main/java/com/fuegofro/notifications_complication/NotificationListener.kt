@@ -63,9 +63,11 @@ class NotificationListener : NotificationListenerLifecycleService() {
             // TODO - Do we even need to store this here???
             currentNotificationDataStore.setNotification(notificationInfo)
             // TODO - Notify change
+            val bytes = notificationInfo.toBytes()
+            Log.e(TAG, "encoded notification size=${bytes.size}")
             dataClient.putDataItem(
                 PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH)
-                    .setData(notificationInfo.toBytes())
+                    .setData(bytes)
                     .setUrgent()
             )
         }
