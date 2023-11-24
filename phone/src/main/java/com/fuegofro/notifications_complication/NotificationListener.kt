@@ -52,21 +52,25 @@ class NotificationListener : NotificationListenerLifecycleService() {
         val firstStatusBarNotification =
             getActiveNotifications(rankingMap.orderedKeys).firstOrNull { statusBarNotification ->
                 // TODO - Other filters based on notification?
+                val flags = statusBarNotification.notification.flags
                 enabledPackages.contains(statusBarNotification.packageName) &&
-                    // Rather than getting the "summary" inbox notification, get an individual one
-                    !statusBarNotification.notification.extras
-                        .getString(Notification.EXTRA_TEMPLATE)
-                        .equals(Notification.InboxStyle::class.java.name)
+                    // Rather than getting the summary, get an individual one
+                    flags.isNotSet(Notification.FLAG_GROUP_SUMMARY) &&
+                    // Ignore stuff that's supposed to stay on the device
+                    flags.isNotSet(Notification.FLAG_LOCAL_ONLY)
             }
 
         // If this is different from our current, update and notify. Handles nulling out or updating
         // to new non-null
-        val currentNotification = currentNotificationDataStore.currentNotification().first()
+        val currentNotification = currentNotificationDataStore.currentNotificationInfo().first()
         if (!currentNotification.matchesStatusBarNotification(firstStatusBarNotification)) {
             Log.e(TAG, "Updating!!!")
             val notificationInfo = firstStatusBarNotification?.toNotificationInfo(this)
             // TODO - Do we even need to store this here???
-            currentNotificationDataStore.setNotification(notificationInfo)
+            currentNotificationDataStore.setNotificationInfo(notificationInfo)
+            currentNotificationDataStore.setNotificationExtras(
+                firstStatusBarNotification?.notification
+            )
             // TODO - Notify change
             val bytes = notificationInfo.toBytes()
             Log.e(TAG, "encoded notification size=${bytes.size}")
@@ -106,3 +110,7 @@ class NotificationListener : NotificationListenerLifecycleService() {
         )
     }
 }
+
+fun Int.isSet(mask: Int): Boolean = this.and(mask) != 0
+
+fun Int.isNotSet(mask: Int): Boolean = !this.isSet(mask)

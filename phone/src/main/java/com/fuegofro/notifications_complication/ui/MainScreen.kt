@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -22,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fuegofro.notifications_complication.common.NotificationInfo
@@ -40,17 +43,31 @@ fun MainScreen(onNavigateToPackagesSelection: () -> Unit) {
         dataItems.release()
         setDataLayerNotification(notificationInfo)
     }
+    val currentNotificationDataStore = LocalContext.current.currentNotificationDataStore
+    val currentNotificationInfo =
+        currentNotificationDataStore
+            .currentNotificationInfo()
+            .collectAsStateWithLifecycle(initialValue = null)
+            .value
+    val currentNotificationExtras =
+        currentNotificationDataStore
+            .currentNotificationExtras()
+            .collectAsStateWithLifecycle(initialValue = null)
+            .value
 
     Scaffold { paddingValues ->
         Column(Modifier.padding(paddingValues)) {
-            val currentNotification =
-                LocalContext.current.currentNotificationDataStore
-                    .currentNotification()
-                    .collectAsStateWithLifecycle(initialValue = null)
-                    .value
-            NotificationPreview(currentNotification)
-            NotificationPreview(dataLayerNotification)
             Button(onClick = onNavigateToPackagesSelection) { Text("Select Packages") }
+            NotificationPreview(currentNotificationInfo)
+            NotificationPreview(dataLayerNotification)
+            LazyColumn {
+                if (currentNotificationExtras != null) {
+                    items(items = currentNotificationExtras.toList()) { (k, v) ->
+                        Text(k, fontWeight = FontWeight.Bold)
+                        Text(v)
+                    }
+                }
+            }
         }
     }
 }
