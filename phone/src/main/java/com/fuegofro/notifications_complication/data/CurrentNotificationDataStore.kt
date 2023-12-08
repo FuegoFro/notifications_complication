@@ -57,7 +57,7 @@ class CurrentNotificationDataStore(context: Context) {
     }
 }
 
-private val notificationFlagNames: Array<String> =
+val notificationFlagNames: Array<String> =
     arrayOf(
         "FLAG_SHOW_LIGHTS",
         "FLAG_ONGOING_EVENT",
@@ -77,7 +77,7 @@ private val notificationFlagNames: Array<String> =
         "FLAG_USER_INITIATED_JOB",
     )
 
-private fun flagsToString(flags: Int, flagNames: Array<String>): String {
+fun flagsToString(flags: Int, flagNames: Array<String>): String {
     var flagsRemaining = flags
     val result = mutableListOf<String>()
     var idx = 0

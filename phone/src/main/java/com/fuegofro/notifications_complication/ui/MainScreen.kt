@@ -93,18 +93,17 @@ private fun NotificationPreview(notificationInfo: NotificationInfo?) {
                             .align(Alignment.BottomEnd),
                 ) {
                     notificationInfo.smallIconBitmap()?.let {
-                        Icon(
+                        Image(
                             it.asImageBitmap(),
                             contentDescription = "Small Icon",
-                            tint = Color(notificationInfo.color),
                             modifier = Modifier.size(12.dp).align(Alignment.Center),
                         )
                     }
                 }
             }
             Column {
-                notificationInfo.title?.let { Text(it) }
-                notificationInfo.body?.let { Text(it) }
+                Text(notificationInfo.title)
+                Text(notificationInfo.body)
             }
         }
     } else {

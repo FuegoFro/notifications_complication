@@ -34,10 +34,10 @@ data class NotificationInfo(
     val color: Int,
 ) {
     fun smallIconBitmap(): Bitmap? =
-        smallIcon?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        byteArraysToBitmap(smallIcon, largeIcon)
 
     fun largeIconBitmap(): Bitmap? =
-        largeIcon?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        byteArraysToBitmap(largeIcon, smallIcon)
 
     companion object {
         // Must match manifest value in wear app
@@ -95,6 +95,11 @@ data class NotificationInfo(
             return byteArray
         }
 
+        fun byteArraysToBitmap(vararg priorityByteArrays: ByteArray): Bitmap? {
+            val byteArray = priorityByteArrays.firstOrNull { it.isNotEmpty() } ?: ByteArray(0)
+            return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+        }
+
         fun NotificationInfo?.matchesStatusBarNotification(
             statusBarNotification: StatusBarNotification?
         ): Boolean =
@@ -104,6 +109,7 @@ data class NotificationInfo(
         fun StatusBarNotification.toNotificationInfo(context: Context): NotificationInfo {
             @SuppressLint("RestrictedApi")
             val style = NotificationCompat.Style.extractStyleFromNotification(notification)
+            val smallIcon = iconToBitmapByteArray(context, notification.smallIcon?.apply { setTint(notification.color) });
             var largeIcon = iconToBitmapByteArray(context, notification.getLargeIcon())
 
             val titleAndText =
@@ -136,7 +142,7 @@ data class NotificationInfo(
                 postTime,
                 (title ?: "").toString(),
                 (text ?: "").toString(),
-                iconToBitmapByteArray(context, notification.smallIcon),
+                smallIcon,
                 largeIcon,
                 notification.color,
             )

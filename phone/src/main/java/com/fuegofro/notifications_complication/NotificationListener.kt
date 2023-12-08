@@ -55,9 +55,9 @@ class NotificationListener : NotificationListenerLifecycleService() {
                 val flags = statusBarNotification.notification.flags
                 enabledPackages.contains(statusBarNotification.packageName) &&
                     // Rather than getting the summary, get an individual one
-                    flags.isNotSet(Notification.FLAG_GROUP_SUMMARY) &&
-                    // Ignore stuff that's supposed to stay on the device
-                    flags.isNotSet(Notification.FLAG_LOCAL_ONLY)
+                    flags.isNotSet(Notification.FLAG_GROUP_SUMMARY)
+                // Not filtering local since some things (like Messages) are local, but we
+                // want them
             }
 
         // If this is different from our current, update and notify. Handles nulling out or updating
@@ -79,7 +79,7 @@ class NotificationListener : NotificationListenerLifecycleService() {
             )
         }
 
-        Log.e(TAG, "$name, current=${currentNotification}")
+        Log.e(TAG, "$name, current=${currentNotification?.key}")
     }
 
     override fun onListenerConnected() {
