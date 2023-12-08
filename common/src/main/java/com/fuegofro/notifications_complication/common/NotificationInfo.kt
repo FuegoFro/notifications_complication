@@ -56,14 +56,14 @@ data class NotificationInfo(
             val drawable = icon?.loadDrawable(context) ?: return ByteArray(0)
 
             // Adapted from https://stackoverflow.com/a/10600736/3000133
-            Log.e("CNDS", "icon=${icon.javaClass.name} drawable=${drawable.javaClass.name}")
+            // Log.e("CNDS", "icon=${icon.javaClass.name} drawable=${drawable.javaClass.name}")
             val bitmap: Bitmap =
                 /*(drawable as? BitmapDrawable)?.bitmap
                 ?:*/ kotlin.run {
-                    Log.e(
-                        "CNDS",
-                        "intrinsicWidth=${drawable.intrinsicWidth} intrinsicHeight=${drawable.intrinsicHeight}"
-                    )
+                    // Log.e(
+                    //     "CNDS",
+                    //     "intrinsicWidth=${drawable.intrinsicWidth} intrinsicHeight=${drawable.intrinsicHeight}"
+                    // )
                     // Single color bitmap will be created of 1x1 pixel
                     val bitmap =
                         if (drawable.intrinsicWidth <= 0 || drawable.intrinsicHeight <= 0) {

@@ -1,6 +1,11 @@
+@file:OptIn(ExperimentalStdlibApi::class)
+
 package com.fuegofro.notifications_complication
 
 import android.app.Notification
+import android.content.Intent
+import android.os.Binder
+import android.os.IBinder
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
@@ -10,18 +15,60 @@ import com.fuegofro.notifications_complication.common.NotificationInfo.Companion
 import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.toNotificationInfo
 import com.fuegofro.notifications_complication.data.CurrentNotificationDataStore
 import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore
+import com.fuegofro.notifications_complication.data.flagsToString
+import com.fuegofro.notifications_complication.data.notificationFlagNames
 import com.google.android.gms.wearable.PutDataRequest
 import com.google.android.gms.wearable.Wearable
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-class NotificationListener : NotificationListenerLifecycleService() {
-    // Store off active key and notification info
-    // Ability to on-demand refresh
+data class NotificationDebugInfo(val info: NotificationInfo, val extras: Map<String, String>)
 
+class NotificationListener : NotificationListenerLifecycleService() {
     private val enabledPackagesDataStore by lazy { EnabledPackagesDataStore(this) }
     private val currentNotificationDataStore by lazy { CurrentNotificationDataStore(this) }
     private val dataClient by lazy { Wearable.getDataClient(this) }
+
+    inner class NotificationListenerBinder : Binder() {
+        suspend fun getAllNotificationInfos(): List<NotificationDebugInfo> {
+            // Wait until we're connected
+            // Log.e(TAG, "getAllNotificationInfos waiting for connected")
+            // Log.e(TAG, "getAllNotificationInfos initially ${connectedFlow.first()}")
+            connectedFlow.first { it }
+            // Log.e(TAG, "getAllNotificationInfos passed connected")
+
+            return getActiveNotifications(currentRanking.orderedKeys)
+                .asSequence()
+                .map { sbn ->
+                    val extras = sbn.notification.extras
+                    val extrasElements =
+                        extras.keySet().map { key ->
+                            @Suppress("DEPRECATION")
+                            key to extras.get(key).toString()
+                        } +
+                            sequenceOf(
+                                "FLAGS" to
+                                    flagsToString(sbn.notification.flags, notificationFlagNames),
+                                "FLAGS_HEX" to sbn.notification.flags.toHexString()
+                            )
+                    NotificationDebugInfo(
+                        sbn.toNotificationInfo(this@NotificationListener),
+                        extrasElements.toMap(),
+                    )
+                }
+                .toList()
+        }
+
+        suspend fun forceRefresh() {
+            // Wait until we're connected
+            connectedFlow.first { it }
+
+            doUpdate("forceRefresh", currentRanking, true)
+        }
+    }
+
+    private val connectedFlow = MutableStateFlow(false)
 
     companion object {
         const val TAG = "NLServ"
@@ -29,21 +76,18 @@ class NotificationListener : NotificationListenerLifecycleService() {
 
     private fun doUpdate(
         name: String,
-        newStatusBarNotification: StatusBarNotification?,
-        rankingMap: RankingMap
+        rankingMap: RankingMap,
+        forceUpdate: Boolean = false,
     ) {
-        lifecycleScope.launch { doUpdateInner(name, newStatusBarNotification, rankingMap) }
+        lifecycleScope.launch { doUpdateInner(name, rankingMap, forceUpdate) }
     }
-
-    private val StatusBarNotification?.logString
-        get() = this?.apply { "($key, $postTime)" }
 
     private suspend fun doUpdateInner(
         name: String,
-        newStatusBarNotification: StatusBarNotification?,
-        rankingMap: RankingMap
+        rankingMap: RankingMap,
+        forceUpdate: Boolean,
     ) {
-        Log.e(TAG, "$name (start), new=${newStatusBarNotification.logString}")
+        // Log.e(TAG, "$name (start), new=${newStatusBarNotification.logString}")
         // Find the first valid StatusBarNotification.
 
         // TODO - If necessary for performance, use the existing (current) SBN or the provided new
@@ -63,8 +107,11 @@ class NotificationListener : NotificationListenerLifecycleService() {
         // If this is different from our current, update and notify. Handles nulling out or updating
         // to new non-null
         val currentNotification = currentNotificationDataStore.currentNotificationInfo().first()
-        if (!currentNotification.matchesStatusBarNotification(firstStatusBarNotification)) {
-            Log.e(TAG, "Updating!!!")
+        if (
+            !currentNotification.matchesStatusBarNotification(firstStatusBarNotification) ||
+                forceUpdate
+        ) {
+            Log.e(TAG, "Updating!!! force=$forceUpdate")
             val notificationInfo = firstStatusBarNotification?.toNotificationInfo(this)
             // TODO - Do we even need to store this here???
             currentNotificationDataStore.setNotificationInfo(notificationInfo)
@@ -73,7 +120,7 @@ class NotificationListener : NotificationListenerLifecycleService() {
             )
             // TODO - Notify change
             val bytes = notificationInfo.toBytes()
-            Log.e(TAG, "encoded notification size=${bytes.size}")
+            // Log.e(TAG, "encoded notification size=${bytes.size}")
             dataClient.putDataItem(
                 PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH).setData(bytes).setUrgent()
             )
@@ -82,32 +129,41 @@ class NotificationListener : NotificationListenerLifecycleService() {
         Log.e(TAG, "$name, current=${currentNotification?.key}")
     }
 
+    override fun onBind(intent: Intent?): IBinder? {
+        // Log.e(TAG, "onBind intent=$intent")
+        return if (intent?.action == null) {
+            // Log.e(TAG, "Returning my binder")
+            NotificationListenerBinder()
+        } else {
+            // Log.e(TAG, "Returning their binder")
+            super.onBind(intent)
+        }
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
-        doUpdate(
-            "onListenerConnected",
-            newStatusBarNotification = null,
-            rankingMap = this.currentRanking
-        )
+        connectedFlow.value = true
+        doUpdate("onListenerConnected", rankingMap = this.currentRanking)
+    }
+
+    override fun onListenerDisconnected() {
+        connectedFlow.value = false
+        super.onListenerDisconnected()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
         super.onNotificationPosted(sbn, rankingMap)
-        doUpdate("onNotificationPosted", sbn, rankingMap)
+        doUpdate("onNotificationPosted", rankingMap)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification, rankingMap: RankingMap) {
         super.onNotificationRemoved(sbn, rankingMap)
-        doUpdate("onNotificationRemoved", sbn, rankingMap)
+        doUpdate("onNotificationRemoved", rankingMap)
     }
 
     override fun onNotificationRankingUpdate(rankingMap: RankingMap) {
         super.onNotificationRankingUpdate(rankingMap)
-        doUpdate(
-            "onNotificationRankingUpdate",
-            newStatusBarNotification = null,
-            rankingMap = rankingMap
-        )
+        doUpdate("onNotificationRankingUpdate", rankingMap = rankingMap)
     }
 }
 

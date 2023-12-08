@@ -46,14 +46,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fuegofro.notifications_complication.NotificationListener
 import com.fuegofro.notifications_complication.R
 import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore.Companion.enabledPackagesDataStore
 import com.fuegofro.notifications_complication.ui.components.AppBarAction
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 @Composable
-fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
+fun PackageSelectionScreen(
+    onNavigateUp: () -> Unit,
+    notificationListenerBinderFlow: Flow<NotificationListener.NotificationListenerBinder?>,
+) {
     val coroutineScope = rememberCoroutineScope()
 
     val packageManager = LocalContext.current.packageManager
@@ -107,6 +112,12 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
         enabledPackagesDataStore.enabledPackages
             .collectAsStateWithLifecycle(initialValue = null)
             .value
+    val binder =
+        notificationListenerBinderFlow.collectAsStateWithLifecycle(initialValue = null).value
+    suspend fun setPackageEnabled(packageId: String, enabled: Boolean) {
+        enabledPackagesDataStore.setPackageEnabled(packageId, enabled)
+        binder?.forceRefresh()
+    }
 
     var filterOnlyEnabled by remember { mutableStateOf(false) }
 
@@ -172,7 +183,7 @@ fun PackageSelectionScreen(onNavigateUp: () -> Unit) {
             paddingValues,
             installedPackages,
             enabledPackages,
-            enabledPackagesDataStore::setPackageEnabled,
+            ::setPackageEnabled,
             filterOnlyEnabled,
         )
     }
