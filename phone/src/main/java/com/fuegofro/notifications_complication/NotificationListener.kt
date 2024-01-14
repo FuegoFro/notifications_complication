@@ -2,7 +2,6 @@
 
 package com.fuegofro.notifications_complication
 
-import android.app.Notification
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
@@ -13,21 +12,21 @@ import com.fuegofro.notifications_complication.common.NotificationInfo
 import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.matchesStatusBarNotification
 import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.toBytes
 import com.fuegofro.notifications_complication.common.NotificationInfo.Companion.toNotificationInfo
-import com.fuegofro.notifications_complication.data.CurrentNotificationDataStore
 import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore
 import com.fuegofro.notifications_complication.data.flagsToString
 import com.fuegofro.notifications_complication.data.notificationFlagNames
 import com.google.android.gms.wearable.PutDataRequest
 import com.google.android.gms.wearable.Wearable
+import java.lang.Exception
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 data class NotificationDebugInfo(val info: NotificationInfo, val extras: Map<String, String>)
 
 class NotificationListener : NotificationListenerLifecycleService() {
     private val enabledPackagesDataStore by lazy { EnabledPackagesDataStore(this) }
-    private val currentNotificationDataStore by lazy { CurrentNotificationDataStore(this) }
     private val dataClient by lazy { Wearable.getDataClient(this) }
 
     inner class NotificationListenerBinder : Binder() {
@@ -96,34 +95,36 @@ class NotificationListener : NotificationListenerLifecycleService() {
         val firstStatusBarNotification =
             getActiveNotifications(rankingMap.orderedKeys).firstOrNull { statusBarNotification ->
                 // TODO - Other filters based on notification?
-                val flags = statusBarNotification.notification.flags
+                // val flags = statusBarNotification.notification.flags
                 enabledPackages.contains(statusBarNotification.packageName) &&
-                    // Rather than getting the summary, get an individual one
-                    flags.isNotSet(Notification.FLAG_GROUP_SUMMARY)
+                    statusBarNotification.notification.extras.getString("android.template") !=
+                        "android.app.Notification\$InboxStyle"
+                    // // Rather than getting the summary, get an individual one
+                    // flags.isNotSet(Notification.FLAG_GROUP_SUMMARY)
                 // Not filtering local since some things (like Messages) are local, but we
                 // want them
             }
 
         // If this is different from our current, update and notify. Handles nulling out or updating
         // to new non-null
-        val currentNotification = currentNotificationDataStore.currentNotificationInfo().first()
+        val dataItems = dataClient.dataItems.await()
+        val currentNotification = NotificationInfo.fromBytes(dataItems.firstOrNull()?.data)
+        dataItems.release()
         if (
             !currentNotification.matchesStatusBarNotification(firstStatusBarNotification) ||
                 forceUpdate
         ) {
             Log.e(TAG, "Updating!!! force=$forceUpdate")
             val notificationInfo = firstStatusBarNotification?.toNotificationInfo(this)
-            // TODO - Do we even need to store this here???
-            currentNotificationDataStore.setNotificationInfo(notificationInfo)
-            currentNotificationDataStore.setNotificationExtras(
-                firstStatusBarNotification?.notification
-            )
-            // TODO - Notify change
             val bytes = notificationInfo.toBytes()
-            // Log.e(TAG, "encoded notification size=${bytes.size}")
-            dataClient.putDataItem(
-                PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH).setData(bytes).setUrgent()
-            )
+            // Log.e(TAG, "encoded notification size=${bytes.size} title=${notificationInfo?.title}")
+            try {
+                dataClient.putDataItem(
+                    PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH).setData(bytes).setUrgent()
+                ).await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to put data: $e")
+            }
         }
 
         Log.e(TAG, "$name, current=${currentNotification?.key}")

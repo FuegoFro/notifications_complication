@@ -6,7 +6,12 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
+import android.os.Build
+import android.os.Bundle
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -33,15 +38,15 @@ data class NotificationInfo(
     private val largeIcon: ByteArray,
     val color: Int,
 ) {
-    fun smallIconBitmap(): Bitmap? =
-        byteArraysToBitmap(smallIcon, largeIcon)
+    fun smallIconBitmap(): Bitmap? = byteArraysToBitmap(smallIcon, largeIcon)
 
-    fun largeIconBitmap(): Bitmap? =
-        byteArraysToBitmap(largeIcon, smallIcon)
+    fun largeIconBitmap(): Bitmap? = byteArraysToBitmap(largeIcon, smallIcon)
 
     companion object {
+        private const val TAG = "NotificationInfo"
         // Must match manifest value in wear app
         const val DATA_LAYER_PATH = "/current_notification"
+
         fun NotificationInfo?.toBytes(): ByteArray =
             this?.let { ProtoBuf.encodeToByteArray(serializer(), it) } ?: ByteArray(0)
 
@@ -55,6 +60,12 @@ data class NotificationInfo(
         private fun iconToBitmapByteArray(context: Context, icon: Icon?): ByteArray {
             val drawable = icon?.loadDrawable(context) ?: return ByteArray(0)
 
+            return drawableToBitmapByteArray(drawable)
+        }
+
+        private const val MAX_DIMEN: Int = 128
+
+        private fun drawableToBitmapByteArray(drawable: Drawable): ByteArray {
             // Adapted from https://stackoverflow.com/a/10600736/3000133
             // Log.e("CNDS", "icon=${icon.javaClass.name} drawable=${drawable.javaClass.name}")
             val bitmap: Bitmap =
@@ -73,9 +84,18 @@ data class NotificationInfo(
                                 Bitmap.Config.ARGB_8888,
                             )
                         } else {
+                            // Scale down if too big
+                            var width = drawable.intrinsicWidth
+                            var height = drawable.intrinsicHeight
+                            val largest = Integer.max(width, height)
+                            if (largest > MAX_DIMEN) {
+                                val factor = (MAX_DIMEN.toFloat()) / (largest.toFloat())
+                                width = (width.toFloat() * factor).toInt()
+                                height = (height.toFloat() * factor).toInt()
+                            }
                             Bitmap.createBitmap(
-                                drawable.intrinsicWidth,
-                                drawable.intrinsicHeight,
+                                width,
+                                height,
                                 Bitmap.Config.ARGB_8888,
                             )
                         }
@@ -106,19 +126,25 @@ data class NotificationInfo(
             this?.key == statusBarNotification?.key &&
                 this?.postTime == statusBarNotification?.postTime
 
+        @OptIn(ExperimentalStdlibApi::class)
         fun StatusBarNotification.toNotificationInfo(context: Context): NotificationInfo {
             @SuppressLint("RestrictedApi")
             val style = NotificationCompat.Style.extractStyleFromNotification(notification)
-            val smallIcon = iconToBitmapByteArray(context, notification.smallIcon?.apply { setTint(notification.color) });
+            val smallIcon =
+                iconToBitmapByteArray(
+                    context,
+                    // TODO - Handle black notification tint
+                    notification.smallIcon?.apply { setTint(notification.color) }
+                )
             var largeIcon = iconToBitmapByteArray(context, notification.getLargeIcon())
+            // Log.e(TAG,"smallIcon=$smallIcon, largeIcon=$largeIcon, color=${notification.color.toHexString()}")
 
             val titleAndText =
-                when (
-                    style
-                ) {
+                when (style) {
                     is NotificationCompat.MessagingStyle -> {
                         if (largeIcon.isEmpty()) {
-                            largeIcon = iconToBitmapByteArray(context, style.user.icon?.toIcon(context))
+                            largeIcon =
+                                iconToBitmapByteArray(context, style.user.icon?.toIcon(context))
                         }
 
                         val message = style.messages.last()
@@ -128,6 +154,20 @@ data class NotificationInfo(
                         } else {
                             null
                         }
+                    }
+                    is NotificationCompat.BigPictureStyle -> {
+                        if (largeIcon.isEmpty()) {
+                            notification.extras
+                                .getParcelableExtra("android.picture", Bitmap::class.java)
+                                ?.let {
+                                    largeIcon =
+                                        drawableToBitmapByteArray(
+                                            BitmapDrawable(context.resources, it)
+                                        )
+                                    Log.e(TAG, "updating largeIcon=$largeIcon")
+                                }
+                        }
+                        null
                     }
                     else -> null
                 }
@@ -147,6 +187,14 @@ data class NotificationInfo(
                 notification.color,
             )
         }
+    }
+}
+
+fun <T> Bundle.getParcelableExtra(name: String, clazz: Class<T>): T? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelable(name, clazz)
+    } else {
+        @Suppress("DEPRECATION") clazz.cast(getParcelable(name))
     }
 }
 
