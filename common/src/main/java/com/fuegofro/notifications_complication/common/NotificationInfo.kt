@@ -6,7 +6,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
@@ -73,7 +72,8 @@ data class NotificationInfo(
                 ?:*/ kotlin.run {
                     // Log.e(
                     //     "CNDS",
-                    //     "intrinsicWidth=${drawable.intrinsicWidth} intrinsicHeight=${drawable.intrinsicHeight}"
+                    //     "intrinsicWidth=${drawable.intrinsicWidth}
+                    // intrinsicHeight=${drawable.intrinsicHeight}"
                     // )
                     // Single color bitmap will be created of 1x1 pixel
                     val bitmap =
@@ -137,17 +137,27 @@ data class NotificationInfo(
                     notification.smallIcon?.apply { setTint(notification.color) }
                 )
             var largeIcon = iconToBitmapByteArray(context, notification.getLargeIcon())
-            // Log.e(TAG,"smallIcon=$smallIcon, largeIcon=$largeIcon, color=${notification.color.toHexString()}")
+            // Log.e(TAG,"smallIcon=$smallIcon, largeIcon=$largeIcon,
+            // color=${notification.color.toHexString()}")
 
             val titleAndText =
                 when (style) {
                     is NotificationCompat.MessagingStyle -> {
+                        val message = style.messages.last()
+                        val senderLargeIcon =
+                            iconToBitmapByteArray(
+                                context,
+                                message?.person?.icon?.toIcon(context)
+                            )
+                        if (senderLargeIcon.isNotEmpty()) {
+                            largeIcon = senderLargeIcon
+                        }
+
                         if (largeIcon.isEmpty()) {
                             largeIcon =
                                 iconToBitmapByteArray(context, style.user.icon?.toIcon(context))
                         }
 
-                        val message = style.messages.last()
                         if (message != null && style.conversationTitle != null) {
                             val prefix = message.person?.name?.let { "$it: " } ?: ""
                             Pair(style.conversationTitle.toString(), "$prefix${message.text ?: ""}")
