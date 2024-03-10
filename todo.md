@@ -14,6 +14,7 @@
 - [x] Filter out notifications we don't want (silent, ongoing, local(?), deselected)
 - [x] Extract info from notifications
 - [x] Send current to watch when notifications change (add, remove, reorder)
+- [X] Make images into circles
 - [ ] Reset on shutdown and boot (real protocol here)
 
 ## Other
@@ -22,6 +23,7 @@
 - [ ] Option to show latest vs top?
 - [ ] Setup instructions/walkthrough
 - [ ] Prompt to install watch app if not there
+- [ ] Ability to dump current notifications for use as test cases
 
 
 # Watch

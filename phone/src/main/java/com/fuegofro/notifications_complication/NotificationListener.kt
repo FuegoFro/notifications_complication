@@ -2,6 +2,7 @@
 
 package com.fuegofro.notifications_complication
 
+import android.app.Notification
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
@@ -95,12 +96,18 @@ class NotificationListener : NotificationListenerLifecycleService() {
         val firstStatusBarNotification =
             getActiveNotifications(rankingMap.orderedKeys).firstOrNull { statusBarNotification ->
                 // TODO - Other filters based on notification?
-                // val flags = statusBarNotification.notification.flags
+                val flags = statusBarNotification.notification.flags
+                val template =
+                    statusBarNotification.notification.extras.getString("android.template")
+
+                // Only look at the packages we have opted into
                 enabledPackages.contains(statusBarNotification.packageName) &&
-                    statusBarNotification.notification.extras.getString("android.template") !=
-                        "android.app.Notification\$InboxStyle"
-                    // // Rather than getting the summary, get an individual one
-                    // flags.isNotSet(Notification.FLAG_GROUP_SUMMARY)
+                    // Skip inbox style to get the first individual entry
+                    template != "android.app.Notification\$InboxStyle" &&
+                    // Similarly skip over summaries and get the individual message. However, if
+                    // it's a messaging style, keep it (some are marked as summary).
+                    (flags.isNotSet(Notification.FLAG_GROUP_SUMMARY) ||
+                        template == "android.app.Notification\$MessageStyle")
                 // Not filtering local since some things (like Messages) are local, but we
                 // want them
             }
@@ -117,11 +124,16 @@ class NotificationListener : NotificationListenerLifecycleService() {
             Log.e(TAG, "Updating!!! force=$forceUpdate")
             val notificationInfo = firstStatusBarNotification?.toNotificationInfo(this)
             val bytes = notificationInfo.toBytes()
-            // Log.e(TAG, "encoded notification size=${bytes.size} title=${notificationInfo?.title}")
+            // Log.e(TAG, "encoded notification size=${bytes.size}
+            // title=${notificationInfo?.title}")
             try {
-                dataClient.putDataItem(
-                    PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH).setData(bytes).setUrgent()
-                ).await()
+                dataClient
+                    .putDataItem(
+                        PutDataRequest.create(NotificationInfo.DATA_LAYER_PATH)
+                            .setData(bytes)
+                            .setUrgent()
+                    )
+                    .await()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to put data: $e")
             }

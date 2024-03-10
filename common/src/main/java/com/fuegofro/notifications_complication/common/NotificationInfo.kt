@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Path
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
@@ -101,6 +102,18 @@ data class NotificationInfo(
                         }
 
                     val canvas = Canvas(bitmap)
+                    // Ensure we're drawing a circular image
+                    canvas.clipPath(
+                        Path().also {
+                            it.addOval(
+                                0f,
+                                0f,
+                                canvas.width.toFloat(),
+                                canvas.height.toFloat(),
+                                Path.Direction.CW
+                            )
+                        }
+                    )
                     drawable.setBounds(0, 0, canvas.width, canvas.height)
                     drawable.draw(canvas)
                     bitmap
@@ -145,10 +158,7 @@ data class NotificationInfo(
                     is NotificationCompat.MessagingStyle -> {
                         val message = style.messages.last()
                         val senderLargeIcon =
-                            iconToBitmapByteArray(
-                                context,
-                                message?.person?.icon?.toIcon(context)
-                            )
+                            iconToBitmapByteArray(context, message?.person?.icon?.toIcon(context))
                         if (senderLargeIcon.isNotEmpty()) {
                             largeIcon = senderLargeIcon
                         }
