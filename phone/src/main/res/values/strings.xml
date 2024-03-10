@@ -6,4 +6,6 @@
     <string name="package_list_filter_all">Show all</string>
     <string name="package_list_select_all">Select all apps</string>
     <string name="package_list_deselect_all">Deselect all apps</string>
+    <string name="package_list_dialog_deselect_all_title">Deselect all apps?</string>
+    <string name="package_list_dialog_deselect_all_body">Are you sure you want to deselect and stop mirroring notifications from all apps?</string>
 </resources>

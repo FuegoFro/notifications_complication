@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FilterListOff
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -51,8 +53,10 @@ import com.fuegofro.notifications_complication.R
 import com.fuegofro.notifications_complication.data.EnabledPackagesDataStore.Companion.enabledPackagesDataStore
 import com.fuegofro.notifications_complication.ui.components.AppBarAction
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PackageSelectionScreen(
@@ -70,43 +74,48 @@ fun PackageSelectionScreen(
             )
         }
     LaunchedEffect(Unit) {
-        val startupIntent = Intent(Intent.ACTION_MAIN)
-        startupIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+        withContext(Dispatchers.IO) {
+            val startupIntent = Intent(Intent.ACTION_MAIN)
+            startupIntent.addCategory(Intent.CATEGORY_LAUNCHER)
 
-        @SuppressLint("QueryPermissionsNeeded")
-        val packages =
-            if (Build.VERSION.SDK_INT >= 33) {
-                packageManager.getInstalledApplications(
-                    PackageManager.ApplicationInfoFlags.of(
-                        PackageManager.GET_META_DATA.toLong(),
-                    ),
-                )
-            } else {
-                packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-            }
-
-        val packagesWithLauncherActivities =
-            packageManager
-                .queryIntentActivities(startupIntent, 0)
-                .asSequence()
-                .map { it.activityInfo.packageName }
-                .toSet()
-        setInstalledPackages(
-            packages
-                .asSequence()
-                .filter { it.enabled && packagesWithLauncherActivities.contains(it.packageName) }
-                .map {
-                    PackageInfo(
-                        name = it.packageName,
-                        icon = it.loadIcon(packageManager),
-                        label = it.loadLabel(packageManager).toString(),
+            @SuppressLint("QueryPermissionsNeeded")
+            val packages =
+                if (Build.VERSION.SDK_INT >= 33) {
+                    packageManager.getInstalledApplications(
+                        PackageManager.ApplicationInfoFlags.of(
+                            PackageManager.GET_META_DATA.toLong(),
+                        ),
                     )
+                } else {
+                    packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
                 }
-                .sortedBy { it.label.lowercase() }
-                .toList(),
-        )
+
+            val packagesWithLauncherActivities =
+                packageManager
+                    .queryIntentActivities(startupIntent, 0)
+                    .asSequence()
+                    .map { it.activityInfo.packageName }
+                    .toSet()
+            setInstalledPackages(
+                packages
+                    .asSequence()
+                    .filter {
+                        it.enabled && packagesWithLauncherActivities.contains(it.packageName)
+                    }
+                    .map {
+                        PackageInfo(
+                            name = it.packageName,
+                            icon = it.loadIcon(packageManager),
+                            label = it.loadLabel(packageManager).toString(),
+                        )
+                    }
+                    .sortedBy { it.label.lowercase() }
+                    .toList(),
+            )
+        }
     }
 
+    val (disableAllDialogVisible, setDisableAllDialogVisible) = remember { mutableStateOf(false) }
     val enabledPackagesDataStore = LocalContext.current.enabledPackagesDataStore
     val enabledPackages =
         enabledPackagesDataStore.enabledPackages
@@ -172,7 +181,7 @@ fun PackageSelectionScreen(
                             icon = Icons.Filled.ToggleOff,
                             labelRes = R.string.package_list_deselect_all,
                         ) {
-                            coroutineScope.launch { enabledPackagesDataStore.disableAll() }
+                            setDisableAllDialogVisible(true)
                         }
                     }
                 },
@@ -186,6 +195,28 @@ fun PackageSelectionScreen(
             ::setPackageEnabled,
             filterOnlyEnabled,
         )
+        if (disableAllDialogVisible) {
+            AlertDialog(
+                title = { Text(stringResource(R.string.package_list_dialog_deselect_all_title)) },
+                text = { Text(stringResource(R.string.package_list_dialog_deselect_all_body)) },
+                onDismissRequest = { setDisableAllDialogVisible(false) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            setDisableAllDialogVisible(false)
+                            coroutineScope.launch { enabledPackagesDataStore.disableAll() }
+                        }
+                    ) {
+                        Text(stringResource(R.string.package_list_deselect_all))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { setDisableAllDialogVisible(false) }) {
+                        Text(stringResource(id = android.R.string.cancel))
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -206,32 +237,8 @@ private fun PackageList(
             Text(text = "Loading...")
         }
     } else {
-        // TODO - This is *way* more performant/smooth than the LazyColumn 🤔
-        // Column(
-        //     modifier =
-        //         Modifier.verticalScroll(rememberScrollState())
-        //             .padding(paddingValues)
-        //             .padding(vertical = 4.dp),
-        // ) {
-        //     installedPackages.forEach { packageInfo ->
-        //         val enabled = enabledPackages.contains(packageInfo.name)
-        //         if (!filterOnlyEnabled || enabled) {
-        //             PackageRow(
-        //                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        //                 packageInfo = packageInfo,
-        //                 enabled = enabled,
-        //                 setEnabled = { newEnabled: Boolean ->
-        //                     coroutineScope.launch {
-        //                         setPackageEnabled(packageInfo.name, newEnabled)
-        //                     }
-        //                 },
-        //             )
-        //         }
-        //     }
-        // }
-
         LazyColumn(
-            /*modifier = Modifier.padding(vertical = 8.dp),*/ contentPadding = paddingValues,
+            contentPadding = paddingValues,
         ) {
             item { Spacer(modifier = Modifier.size(4.dp)) }
 

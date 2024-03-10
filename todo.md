@@ -15,6 +15,7 @@
 - [x] Extract info from notifications
 - [x] Send current to watch when notifications change (add, remove, reorder)
 - [X] Make images into circles
+- [ ] Allow long-running notifications
 - [ ] Reset on shutdown and boot (real protocol here)
 
 ## Other
@@ -24,6 +25,7 @@
 - [ ] Setup instructions/walkthrough
 - [ ] Prompt to install watch app if not there
 - [ ] Ability to dump current notifications for use as test cases
+- [ ] Figure out what to do with debug info in prod
 
 
 # Watch
