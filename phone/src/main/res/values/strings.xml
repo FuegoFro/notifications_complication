@@ -2,10 +2,13 @@
     <string name="app_name">Notifications Complication Phone Companion</string>
     <string name="notification_listener_service_name">Notifications Listener Service</string>
     <string name="button_up">Up</string>
+    <string name="package_list_title">Pick apps</string>
+    <string name="package_list_loading">Loading…</string>
     <string name="package_list_filter_only_enabled">Only show enabled</string>
     <string name="package_list_filter_all">Show all</string>
     <string name="package_list_select_all">Select all apps</string>
     <string name="package_list_deselect_all">Deselect all apps</string>
     <string name="package_list_dialog_deselect_all_title">Deselect all apps?</string>
     <string name="package_list_dialog_deselect_all_body">Are you sure you want to deselect and stop mirroring notifications from all apps?</string>
+    <string name="package_list_search">Search apps</string>
 </resources>
