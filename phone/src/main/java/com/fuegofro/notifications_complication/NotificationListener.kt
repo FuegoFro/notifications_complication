@@ -4,7 +4,11 @@ package com.fuegofro.notifications_complication
 
 import android.app.Notification
 import android.content.Intent
+import android.media.session.MediaController
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -50,7 +54,7 @@ class NotificationListener : NotificationListenerLifecycleService() {
                             sequenceOf(
                                 "FLAGS" to
                                     flagsToString(sbn.notification.flags, notificationFlagNames),
-                                "FLAGS_HEX" to sbn.notification.flags.toHexString()
+                                "FLAGS_HEX" to sbn.notification.flags.toHexString(),
                             )
                     NotificationDebugInfo(
                         sbn.toNotificationInfo(this@NotificationListener),
@@ -107,7 +111,13 @@ class NotificationListener : NotificationListenerLifecycleService() {
                     // Similarly skip over summaries and get the individual message. However, if
                     // it's a messaging style, keep it (some are marked as summary).
                     (flags.isNotSet(Notification.FLAG_GROUP_SUMMARY) ||
-                        template == "android.app.Notification\$MessageStyle")
+                        template == "android.app.Notification\$MessageStyle") &&
+                    // Don't show ongoing/unclearable notifications unless they're for a media session
+                    (flags.isNotSet(Notification.FLAG_NO_CLEAR) ||
+                        template == "android.app.Notification\$MediaStyle") &&
+                    // Only show media sessions that are currently playing
+                    (template != "android.app.Notification\$MediaStyle" ||
+                        isMediaSessionPlaying(statusBarNotification))
                 // Not filtering local since some things (like Messages) are local, but we
                 // want them
             }
@@ -140,6 +150,23 @@ class NotificationListener : NotificationListenerLifecycleService() {
         }
 
         Log.e(TAG, "$name, current=${currentNotification?.key}")
+    }
+
+    private fun isMediaSessionPlaying(statusBarNotification: StatusBarNotification): Boolean {
+        val key = "android.mediaSession"
+        val token =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                statusBarNotification.notification.extras.getParcelable(
+                    key,
+                    MediaSession.Token::class.java,
+                )
+            } else {
+                statusBarNotification.notification.extras.getParcelable(
+                    key,
+                )
+            }
+        return token != null &&
+            MediaController(this, token).playbackState?.state == PlaybackState.STATE_PLAYING
     }
 
     override fun onBind(intent: Intent?): IBinder? {

@@ -7,7 +7,7 @@
 - [x] Allow filter to only selected
 - [x] Show relevant system apps (eg Messages)
 - [x] Refresh current notification when changing packages (real protocol here)
-- [ ] Search for app name (also search package name?)
+- [x] Search for app name (also search package name?)
 
 ## Notification handling
 - [x] Register notification listener
@@ -15,8 +15,8 @@
 - [x] Extract info from notifications
 - [x] Send current to watch when notifications change (add, remove, reorder)
 - [X] Make images into circles
-- [ ] Allow long-running notifications
-- [ ] Reset on shutdown and boot (real protocol here)
+- [x] Allow long-running notifications
+- [ ] Reset on shutdown and boot (using binder)?
 
 ## Other
 - [x] List all notification infos on demand (real protocol)
