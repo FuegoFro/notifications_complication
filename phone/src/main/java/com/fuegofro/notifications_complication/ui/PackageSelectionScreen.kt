@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -70,6 +73,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun PackageSelectionScreen(
     onNavigateUp: () -> Unit,
+    onNavigateToPackageDetail: (String) -> Unit,
     notificationListenerBinderFlow: Flow<NotificationListener.NotificationListenerBinder?>,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -191,6 +195,7 @@ fun PackageSelectionScreen(
                     installedPackages,
                     enabledPackages,
                     ::setPackageEnabled,
+                    onNavigateToPackageDetail,
                     filterOnlyEnabled,
                     currentSearch,
                 )
@@ -268,6 +273,7 @@ fun PackageSelectionScreen(
             installedPackages,
             enabledPackages,
             ::setPackageEnabled,
+            onNavigateToPackageDetail,
             filterOnlyEnabled,
             filterSearch = null,
         )
@@ -304,6 +310,7 @@ private fun PackageList(
     installedPackages: List<PackageInfo>?,
     enabledPackages: Set<String>?,
     setPackageEnabled: suspend (String, Boolean) -> Unit,
+    onNavigateToPackageDetail: (String) -> Unit,
     filterOnlyEnabled: Boolean,
     filterSearch: String?,
 ) {
@@ -338,6 +345,9 @@ private fun PackageList(
                                 setPackageEnabled(packageInfo.name, newEnabled)
                             }
                         },
+                        onNavigateToDetail = {
+                            onNavigateToPackageDetail(packageInfo.name)
+                        },
                     )
                 }
             }
@@ -350,18 +360,50 @@ private fun PackageRow(
     packageInfo: PackageInfo,
     enabled: Boolean,
     setEnabled: (Boolean) -> Unit,
+    onNavigateToDetail: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(Modifier.clickable { setEnabled(!enabled) }.then(modifier)) {
-        Image(
-            modifier = Modifier.size(48.dp).align(Alignment.CenterVertically),
-            painter = rememberDrawablePainter(packageInfo.icon),
-            contentDescription = null,
+    Row(modifier) {
+        // Clickable area for navigation to detail
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onNavigateToDetail() }
+                .padding(vertical = 8.dp)
+        ) {
+            Image(
+                modifier = Modifier.size(48.dp).align(Alignment.CenterVertically),
+                painter = rememberDrawablePainter(packageInfo.icon),
+                contentDescription = null,
+            )
+            Text(
+                modifier = Modifier
+                    .weight(1f)
+                    .align(Alignment.CenterVertically)
+                    .padding(start = 8.dp),
+                text = packageInfo.label,
+            )
+        }
+        
+        // Vertical divider
+        Box(
+            modifier = Modifier
+                .height(48.dp)
+                .width(1.dp)
+                .align(Alignment.CenterVertically)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
         )
-        Text(
-            modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(start = 8.dp),
-            text = packageInfo.label,
-        )
-        Switch(checked = enabled, onCheckedChange = setEnabled)
+        
+        // Switch area
+        Box(
+            modifier = Modifier
+                .clickable { setEnabled(!enabled) }
+                .padding(start = 16.dp, end = 8.dp)
+                .align(Alignment.CenterVertically),
+            contentAlignment = Alignment.Center
+
+        ) {
+            Switch(checked = enabled, onCheckedChange = setEnabled)
+        }
     }
 }

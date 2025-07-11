@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.fuegofro.notifications_complication.ui.MainScreen
 import com.fuegofro.notifications_complication.ui.NotificationsDebugScreen
+import com.fuegofro.notifications_complication.ui.PackageDetailScreen
 import com.fuegofro.notifications_complication.ui.PackageSelectionScreen
 import com.fuegofro.notifications_complication.ui.theme.NotificationsComplicationTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 private data object NavScreens {
     const val MAIN = "MAIN"
     const val PACKAGES_SELECTION = "PACKAGES_SELECTION"
+    const val PACKAGE_DETAIL = "PACKAGE_DETAIL/{packageId}"
     const val NOTIFICATIONS_DEBUG = "NOTIFICATIONS_DEBUG"
+    
+    fun packageDetail(packageId: String) = "PACKAGE_DETAIL/$packageId"
 }
 
 class MainActivity : ComponentActivity() {
@@ -65,7 +69,20 @@ class MainActivity : ComponentActivity() {
                     composable(NavScreens.PACKAGES_SELECTION) {
                         PackageSelectionScreen(
                             onNavigateUp = navController::navigateUp,
+                            onNavigateToPackageDetail = { packageId ->
+                                navController.navigate(NavScreens.packageDetail(packageId))
+                            },
                             notificationListenerBinderFlow = serviceBinderFlow,
+                        )
+                    }
+                    composable(NavScreens.PACKAGE_DETAIL) { backStackEntry ->
+                        val packageId = backStackEntry.arguments?.getString("packageId") ?: ""
+                        PackageDetailScreen(
+                            packageId = packageId,
+                            onNavigateUp = navController::navigateUp,
+                            refreshNotifications = {
+                                serviceBinderFlow.value?.forceRefresh()
+                            }
                         )
                     }
                     composable(NavScreens.NOTIFICATIONS_DEBUG) {

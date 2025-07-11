@@ -5,6 +5,9 @@
       <SelectionState runConfigName="phone">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
+      <SelectionState runConfigName="wear.NotificationComplicationDataSourceService">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
     </selectionStates>
   </component>
 </project>

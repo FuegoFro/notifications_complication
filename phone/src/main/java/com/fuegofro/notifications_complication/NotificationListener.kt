@@ -96,28 +96,33 @@ class NotificationListener : NotificationListenerLifecycleService() {
 
         // TODO - If necessary for performance, use the existing (current) SBN or the provided new
         //   one if possible, otherwise fetch the SBN from the OS.
-        val enabledPackages = enabledPackagesDataStore.enabledPackages.first()
+        val packageSettings = enabledPackagesDataStore.packageSettings.first()
         val firstStatusBarNotification =
             getActiveNotifications(rankingMap.orderedKeys).firstOrNull { statusBarNotification ->
                 // TODO - Other filters based on notification?
                 val flags = statusBarNotification.notification.flags
                 val template =
                     statusBarNotification.notification.extras.getString("android.template")
+                val settings = packageSettings[statusBarNotification.packageName]
 
                 // Only look at the packages we have opted into
-                enabledPackages.contains(statusBarNotification.packageName) &&
+                settings?.enabled == true &&
                     // Skip inbox style to get the first individual entry
                     template != "android.app.Notification\$InboxStyle" &&
                     // Similarly skip over summaries and get the individual message. However, if
                     // it's a messaging style, keep it (some are marked as summary).
                     (flags.isNotSet(Notification.FLAG_GROUP_SUMMARY) ||
                         template == "android.app.Notification\$MessageStyle") &&
-                    // Don't show ongoing/unclearable notifications unless they're for a media session
+                    // Check ongoing/persistent notifications based on per-package settings
                     (flags.isNotSet(Notification.FLAG_NO_CLEAR) ||
+                        settings.showOngoing ||
                         template == "android.app.Notification\$MediaStyle") &&
                     // Only show media sessions that are currently playing
                     (template != "android.app.Notification\$MediaStyle" ||
-                        isMediaSessionPlaying(statusBarNotification))
+                        isMediaSessionPlaying(statusBarNotification)) &&
+                    // Check silent notifications based on per-package settings
+                    (statusBarNotification.notification.priority >= Notification.PRIORITY_LOW ||
+                        settings.showSilent)
                 // Not filtering local since some things (like Messages) are local, but we
                 // want them
             }

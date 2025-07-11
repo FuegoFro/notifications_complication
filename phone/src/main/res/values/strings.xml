@@ -11,4 +11,12 @@
     <string name="package_list_dialog_deselect_all_title">Deselect all apps?</string>
     <string name="package_list_dialog_deselect_all_body">Are you sure you want to deselect and stop mirroring notifications from all apps?</string>
     <string name="package_list_search">Search apps</string>
+    <string name="package_detail_title">App Settings</string>
+    <string name="package_detail_basic_settings">Basic Settings</string>
+    <string name="package_detail_notifications_enabled">Show notifications</string>
+    <string name="package_detail_advanced_settings">Advanced Settings</string>
+    <string name="package_detail_show_ongoing">Show ongoing notifications</string>
+    <string name="package_detail_show_ongoing_description">Include persistent notifications like media playback</string>
+    <string name="package_detail_show_silent">Show silent notifications</string>
+    <string name="package_detail_show_silent_description">Include notifications without sound or vibration</string>
 </resources>
